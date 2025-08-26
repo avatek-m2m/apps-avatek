@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agregador de Links</title>
+    <!-- Tailwind CSS para estilização rápida e moderna -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Define a fonte Inter como padrão */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Estilo para a animação de carregamento */
+        .loader {
+            border-top-color: #3498db;
+            -webkit-animation: spin 1s linear infinite;
+            animation: spin 1s linear infinite;
+        }
+        @-webkit-keyframes spin {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto max-w-3xl p-4 sm:p-6">
+        
+        <!-- Cabeçalho -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">Meu Agregador de Links</h1>
+            <p class="text-gray-600 mt-2">Um lugar central para todos os seus links importantes.</p>
+        </header>
+
+        <!-- Formulário para Adicionar Novos Links -->
+        <div class="bg-white p-6 rounded-xl shadow-md mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Adicionar Novo Link</h2>
+            <form id="add-link-form" class="space-y-4">
+                <div>
+                    <label for="link-title" class="block text-sm font-medium text-gray-700">Título</label>
+                    <input type="text" id="link-title" name="title" placeholder="Ex: Ferramenta de Design Incrível" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="link-url" class="block text-sm font-medium text-gray-700">URL</label>
+                    <input type="url" id="link-url" name="url" placeholder="https://exemplo.com" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <button type="submit" id="submit-button" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                    Adicionar Link
+                </button>
+            </form>
+        </div>
+
+        <!-- Seção de Exibição dos Links -->
+        <div>
+            <h2 class="text-2xl font-semibold mb-4">Links Salvos</h2>
+            <!-- Indicador de Carregamento -->
+            <div id="loader" class="text-center py-10">
+                <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mx-auto"></div>
+                <p class="mt-4 text-gray-500">Carregando links...</p>
+            </div>
+            <!-- Container dos Links -->
+            <div id="links-container" class="space-y-4">
+                <!-- Links serão inseridos aqui dinamicamente -->
+            </div>
+            <!-- Mensagem para quando não houver links -->
+            <div id="empty-state" class="hidden text-center py-10 bg-white rounded-xl shadow-md">
+                <p class="text-gray-500">Nenhum link encontrado.</p>
+                <p class="text-sm text-gray-400 mt-2">Adicione seu primeiro link usando o formulário acima!</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO ---
+        // COLE A URL DO SEU WEB APP DO GOOGLE SHEETS AQUI
+        const googleSheetWebAppUrl = 'https://script.google.com/macros/s/AKfycbxqv6c671lJ4KHJB70uCLblZ9hJBTCWIvhikzjfXZPvaFxCdb33pQzDFgPHLvCvli-y/exec';
+
+        // --- ELEMENTOS DO DOM ---
+        const form = document.getElementById('add-link-form');
+        const linksContainer = document.getElementById('links-container');
+        const loader = document.getElementById('loader');
+        const emptyState = document.getElementById('empty-state');
+        const submitButton = document.getElementById('submit-button');
+
+        // --- FUNÇÕES ---
+
+        /**
+         * Renderiza a lista de links na tela.
+         * @param {Array} links - Um array de objetos, onde cada objeto tem 'titulo' e 'url'.
+         */
+        function renderLinks(links) {
+            // Limpa o container antes de adicionar novos links
+            linksContainer.innerHTML = '';
+            
+            if (links.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                links.forEach(link => {
+                    const linkCard = `
+                        <a href="${link.url}" target="_blank" rel="noopener noreferrer" class="block bg-white p-4 rounded-xl shadow-md hover:shadow-lg hover:ring-2 hover:ring-indigo-500 transition-all duration-300">
+                            <h3 class="font-semibold text-lg text-indigo-700 truncate">${link.titulo}</h3>
+                            <p class="text-sm text-gray-500 truncate mt-1">${link.url}</p>
+                        </a>
+                    `;
+                    linksContainer.insertAdjacentHTML('beforeend', linkCard);
+                });
+            }
+        }
+
+        /**
+         * Busca os links da planilha do Google Sheets.
+         */
+        async function fetchLinks() {
+            loader.classList.remove('hidden');
+            linksContainer.innerHTML = '';
+            emptyState.classList.add('hidden');
+
+            if (googleSheetWebAppUrl === 'URL_DO_SEU_WEB_APP_AQUI') {
+                console.error("URL do Web App não configurada.");
+                loader.classList.add('hidden');
+                linksContainer.innerHTML = '<p class="text-center text-red-500">Por favor, configure a URL do seu Web App do Google Sheets no script.</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(googleSheetWebAppUrl);
+                if (!response.ok) {
+                    throw new Error(`Erro na rede: ${response.statusText}`);
+                }
+                const data = await response.json();
+                renderLinks(data.links);
+            } catch (error) {
+                console.error('Falha ao buscar links:', error);
+                linksContainer.innerHTML = '<p class="text-center text-red-500">Não foi possível carregar os links. Verifique o console para mais detalhes.</p>';
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Adiciona um novo link à planilha.
+         * @param {Event} event - O evento de submissão do formulário.
+         */
+        async function addLink(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(form);
+            const originalButtonText = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.innerHTML = 'Adicionando...';
+
+            try {
+                const response = await fetch(googleSheetWebAppUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro ao enviar: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    form.reset(); // Limpa o formulário
+                    fetchLinks(); // Atualiza a lista de links
+                } else {
+                    throw new Error(result.message || 'Ocorreu um erro desconhecido.');
+                }
+
+            } catch (error) {
+                console.error('Falha ao adicionar link:', error);
+                alert(`Erro: ${error.message}`);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+            }
+        }
+
+        // --- INICIALIZAÇÃO ---
+        document.addEventListener('DOMContentLoaded', fetchLinks);
+        form.addEventListener('submit', addLink);
+    </script>
+</body>
+</html>
