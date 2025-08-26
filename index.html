@@ -46,8 +46,8 @@
     <div class="container mx-auto max-w-4xl p-4 sm:p-6">
         
         <header class="text-center mb-10">
-            <!-- Logo Placeholder -->
-            <img src="https://raw.githubusercontent.com/vmacagnani/base-de-dados/main/logo-white.png" alt="Logo" class="mx-auto h-16 w-auto mb-4">
+            <!-- Logo Atualizado -->
+            <img src="https://raw.githubusercontent.com/avatek-m2m/apps-avatek/refs/heads/main/Avatek-logo-2.svg" alt="Logo" class="mx-auto h-16 w-auto mb-4">
             <h1 class="text-4xl font-bold text-white">Meu Agregador de Links</h1>
             <p class="text-gray-400 mt-2">Um lugar central para todos os seus links importantes.</p>
         </header>
@@ -73,9 +73,9 @@
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-semibold text-white">Links Salvos</h2>
                 <button id="reload-button" title="Recarregar Links" class="p-2 rounded-full text-gray-400 hover:bg-gray-700 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M20 4h-5l-1.42-1.42A2 2 0 0012.17 2H4a2 2 0 00-2 2v5" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 0013.5 5.5" />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M20 4h-5l-1.42-1.42A2 2 0 0012.17 2H4a2 2 0 00-2 2v5" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 0013.5 5.5" />
                     </svg>
                 </button>
             </div>
@@ -114,21 +114,14 @@
                 emptyState.classList.remove('hidden');
             } else {
                 emptyState.classList.add('hidden');
-                // Inverte a ordem para mostrar os mais recentes primeiro
                 links.reverse().forEach(link => {
-                    // Tenta extrair o hostname da URL para pegar o favicon
-                    let hostname;
-                    try {
-                        hostname = new URL(link.url).hostname;
-                    } catch (e) {
-                        hostname = 'example.com'; // Fallback
-                    }
-                    const faviconUrl = `https://www.google.com/s2/favicons?sz=64&domain_url=${hostname}`;
-
+                    // Ícone genérico de link (SVG)
                     const linkCard = `
                         <a href="${link.url}" target="_blank" rel="noopener noreferrer" 
-                           class="flex flex-col items-center justify-center text-center p-4 bg-gray-800 border border-gray-700 rounded-xl shadow-lg hover:bg-gray-700 hover:border-indigo-500 transition-all duration-300 aspect-square">
-                            <img src="${faviconUrl}" alt="Ícone" class="w-12 h-12 mb-3 rounded-lg object-cover" onerror="this.style.display='none'">
+                           class="flex flex-col items-center justify-center text-center p-4 bg-gray-800 border border-gray-700 rounded-xl shadow-lg hover:bg-gray-700 hover:border-indigo-500 transition-all duration-300 aspect-square group">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-3 text-gray-500 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
                             <h3 class="font-semibold text-sm text-gray-200 break-words w-full">${link.titulo}</h3>
                         </a>
                     `;
