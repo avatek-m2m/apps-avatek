@@ -33,19 +33,18 @@
             backdrop-filter: blur(2px);
         }
 
-        /* Efeito de Descrição no Hover */
         .link-card { position: relative; overflow: hidden; }
         .description-overlay {
             position: absolute;
             bottom: 0; left: 0; right: 0;
-            background: rgba(59, 130, 246, 0.95);
+            background: rgba(30, 41, 59, 0.95); /* Slate escuro para melhor leitura */
             color: white;
-            padding: 1rem;
+            padding: 0.75rem;
             font-size: 10px;
             font-weight: 500;
             text-align: center;
             transform: translateY(100%);
-            transition: transform 0.3s ease;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             backdrop-filter: blur(4px);
         }
         .link-card:hover .description-overlay {
@@ -74,11 +73,12 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div class="flex flex-col gap-1">
                         <label class="text-[9px] font-bold text-slate-400 uppercase ml-1">Título</label>
-                        <input type="text" name="title" placeholder="Ex: Dashboards" required class="bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm border-none">
+                        <input type="text" name="title" placeholder="Ex: Planilha de Vendas" required class="bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm border-none">
                     </div>
                     <div class="flex flex-col gap-1">
                         <label class="text-[9px] font-bold text-slate-400 uppercase ml-1">Tipo</label>
-                        <select name="tipo" required class="bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm border-none appearance-none">
+                        <select name="tipo" id="form-tipo" required class="bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm border-none appearance-none">
+                            <option value="Tabelas">Tabelas</option>
                             <option value="Ferramentas">Ferramentas</option>
                             <option value="Documentos">Documentos</option>
                             <option value="Acessos">Acessos</option>
@@ -92,7 +92,7 @@
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-[9px] font-bold text-slate-400 uppercase ml-1">Descrição Curta (Hover)</label>
-                    <input type="text" name="description" placeholder="Descreva brevemente o que este link faz..." class="bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm border-none">
+                    <input type="text" name="description" placeholder="Ex: Controle de estoque mensal v2" class="bg-slate-50 p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm border-none">
                 </div>
                 <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all uppercase tracking-widest text-xs">
                     Salvar Link na Base
@@ -122,7 +122,7 @@
     </div>
 
     <script>
-        const googleSheetWebAppUrl = 'https://script.google.com/macros/s/AKfycbz7E23u-0WZsK-1X58jnP2vWLNF5Mo45EouGmanyHur8eTtceykjH_38krU9elxV0Fu/exec'; // <--- ATUALIZE
+        const googleSheetWebAppUrl = 'https://script.google.com/macros/s/AKfycbz7E23u-0WZsK-1X58jnP2vWLNF5Mo45EouGmanyHur8eTtceykjH_38krU9elxV0Fu/execI';
 
         const form = document.getElementById('add-link-form');
         const linksWrapper = document.getElementById('links-wrapper');
@@ -140,6 +140,7 @@
             }
             emptyState.classList.add('hidden');
 
+            // 1. Agrupar por categoria
             const grupos = links.reduce((acc, link) => {
                 const cat = link.tipo || 'Geral';
                 if (!acc[cat]) acc[cat] = [];
@@ -147,7 +148,15 @@
                 return acc;
             }, {});
 
-            Object.keys(grupos).sort().forEach(categoria => {
+            // 2. Lógica de Ordenação Customizada: "Tabelas" sempre em primeiro
+            const categoriasOrdenadas = Object.keys(grupos).sort((a, b) => {
+                if (a === 'Tabelas') return -1;
+                if (b === 'Tabelas') return 1;
+                return a.localeCompare(b); // O restante fica em ordem alfabética
+            });
+
+            // 3. Renderizar
+            categoriasOrdenadas.forEach(categoria => {
                 const sectionHtml = `
                     <section class="animate-fadeIn">
                         <div class="flex items-center gap-4 mb-6">
@@ -184,7 +193,7 @@
                 const data = await response.json();
                 renderLinks(data.links);
             } catch (error) {
-                linksWrapper.innerHTML = '<p class="text-center text-red-500 font-bold">Erro de Sincronização.</p>';
+                linksWrapper.innerHTML = '<p class="text-center text-red-500 font-bold px-4 py-2 glass-card rounded-xl">Falha na conexão com o Banco de Dados.</p>';
             } finally { loader.classList.add('hidden'); }
         }
 
@@ -195,9 +204,15 @@
             try {
                 const res = await fetch(googleSheetWebAppUrl, { method: 'POST', body: formData });
                 const result = await res.json();
-                if (result.status === 'success') { form.reset(); await fetchLinks(); }
-            } catch (error) { alert(`Erro ao salvar link.`); }
-            finally { toggleOverlay(false); }
+                if (result.status === 'success') { 
+                    form.reset(); 
+                    await fetchLinks(); 
+                }
+            } catch (error) { 
+                alert(`Erro ao salvar link.`); 
+            } finally { 
+                toggleOverlay(false); 
+            }
         });
 
         document.addEventListener('DOMContentLoaded', fetchLinks);
