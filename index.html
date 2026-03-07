@@ -37,7 +37,7 @@
         .description-overlay {
             position: absolute;
             bottom: 0; left: 0; right: 0;
-            background: rgba(30, 41, 59, 0.95); /* Slate escuro para melhor leitura */
+            background: rgba(30, 41, 59, 0.95);
             color: white;
             padding: 0.75rem;
             font-size: 10px;
@@ -101,11 +101,18 @@
         </div>
 
         <div class="relative">
-            <div class="flex justify-between items-center mb-8 border-b border-slate-200 pb-4">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-slate-200 pb-6 gap-4">
                 <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest italic">Recursos Salvos</h2>
-                <button id="reload-button" class="p-2 hover:bg-white rounded-xl transition-all text-slate-400 hover:text-blue-600 shadow-sm border border-transparent hover:border-slate-100">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-                </button>
+                
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <div class="relative w-full md:w-64">
+                        <input type="text" id="search-input" placeholder="Buscar recurso..." class="w-full bg-white/50 border border-slate-200 rounded-full py-2 px-4 pl-10 text-xs outline-none focus:ring-2 focus:ring-blue-400 transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-3 top-2.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </div>
+                    <button id="reload-button" class="p-2.5 hover:bg-white rounded-full transition-all text-slate-400 hover:text-blue-600 shadow-sm border border-slate-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                    </button>
+                </div>
             </div>
             
             <div id="loader" class="text-center py-20">
@@ -116,7 +123,7 @@
             <div id="links-wrapper" class="space-y-12"></div>
 
             <div id="empty-state" class="hidden text-center py-20 glass-card rounded-[2.5rem]">
-                <p class="text-slate-400 font-bold italic">Nenhum link catalogado.</p>
+                <p class="text-slate-400 font-bold italic">Nenhum link encontrado.</p>
             </div>
         </div>
     </div>
@@ -129,6 +136,9 @@
         const loader = document.getElementById('loader');
         const overlay = document.getElementById('loader-overlay');
         const emptyState = document.getElementById('empty-state');
+        const searchInput = document.getElementById('search-input');
+
+        let allLinks = []; // Armazenamento global para busca
 
         function toggleOverlay(show) { overlay.style.display = show ? 'flex' : 'none'; }
 
@@ -140,7 +150,6 @@
             }
             emptyState.classList.add('hidden');
 
-            // 1. Agrupar por categoria
             const grupos = links.reduce((acc, link) => {
                 const cat = link.tipo || 'Geral';
                 if (!acc[cat]) acc[cat] = [];
@@ -148,14 +157,12 @@
                 return acc;
             }, {});
 
-            // 2. Lógica de Ordenação Customizada: "Tabelas" sempre em primeiro
             const categoriasOrdenadas = Object.keys(grupos).sort((a, b) => {
                 if (a === 'Tabelas') return -1;
                 if (b === 'Tabelas') return 1;
-                return a.localeCompare(b); // O restante fica em ordem alfabética
+                return a.localeCompare(b);
             });
 
-            // 3. Renderizar
             categoriasOrdenadas.forEach(categoria => {
                 const sectionHtml = `
                     <section class="animate-fadeIn">
@@ -164,7 +171,7 @@
                             <div class="h-[1px] w-full bg-slate-200"></div>
                         </div>
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                            ${grupos[categoria].reverse().map(link => `
+                            ${grupos[categoria].map(link => `
                                 <a href="${link.url}" target="_blank" rel="noopener noreferrer" 
                                    class="link-card group glass-card flex flex-col items-center justify-center p-6 rounded-[2rem] hover:shadow-[0_20px_40px_rgba(59,130,246,0.1)] hover:border-blue-300 transition-all duration-300 aspect-square">
                                     
@@ -188,14 +195,27 @@
         async function fetchLinks() {
             loader.classList.remove('hidden');
             linksWrapper.innerHTML = '';
+            searchInput.value = ''; 
             try {
                 const response = await fetch(`${googleSheetWebAppUrl}?cache_bust=${new Date().getTime()}`);
                 const data = await response.json();
-                renderLinks(data.links);
+                allLinks = data.links.reverse(); // Guardamos os originais invertidos (mais recentes primeiro)
+                renderLinks(allLinks);
             } catch (error) {
                 linksWrapper.innerHTML = '<p class="text-center text-red-500 font-bold px-4 py-2 glass-card rounded-xl">Falha na conexão com o Banco de Dados.</p>';
             } finally { loader.classList.add('hidden'); }
         }
+
+        // Lógica da Busca
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = allLinks.filter(link => 
+                link.titulo.toLowerCase().includes(term) || 
+                (link.descricao && link.descricao.toLowerCase().includes(term)) ||
+                link.tipo.toLowerCase().includes(term)
+            );
+            renderLinks(filtered);
+        });
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
